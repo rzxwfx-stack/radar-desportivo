@@ -1,25 +1,30 @@
-<!DOCTYPE html>
+ <!DOCTYPE html>
 <html lang="pt-PT">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Radar Desportivo Avançado - Estatísticas</title>
+    <title>Radar de Sinais - Canto Limite</title>
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #121212; color: #ffffff; margin: 0; padding: 20px; }
         h2 { color: #00e676; border-bottom: 1px solid #333; padding-bottom: 10px; }
-        .match-card { background-color: #1e1e1e; border-left: 5px solid #00e676; padding: 15px; margin-bottom: 15px; border-radius: 4px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
+        .match-card { background-color: #1e1e1e; border-left: 5px solid #00e676; padding: 15px; margin-bottom: 15px; border-radius: 4px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); transition: all 0.3s ease; }
         .match-header { display: flex; justify-content: space-between; font-weight: bold; font-size: 1.1em; margin-bottom: 10px; }
         .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 0.9em; color: #b3b3b3; }
         .stat-item { background: #2a2a2a; padding: 10px; border-radius: 4px; text-align: center; }
         .highlight { color: #00e676; font-size: 1.2em; font-weight: bold; display: block; margin-top: 5px; }
-        .error { color: #ff5252; text-align: center; padding: 15px; background: #2a0000; border-radius: 4px; font-family: monospace; }
         .update-info { text-align: center; color: #888; font-size: 0.85em; margin-top: 20px; }
+        
+        /* CSS do Alerta de Entrada */
+        .alert-entry { border-left: 5px solid #ff3d00; background-color: #2b0c00; animation: pulse 2s infinite; }
+        .alert-entry .highlight { color: #ff3d00; }
+        .alert-banner { background: #ff3d00; color: white; text-align: center; font-weight: bold; padding: 8px; margin-bottom: 12px; border-radius: 4px; text-transform: uppercase; letter-spacing: 1px; }
+        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(255, 61, 0, 0.5); } 70% { box-shadow: 0 0 0 10px rgba(255, 61, 0, 0); } 100% { box-shadow: 0 0 0 0 rgba(255, 61, 0, 0); } }
     </style>
 </head>
 <body>
 
-    <h2>Radar Avançado: Ao Vivo</h2>
-    <div id="matches-container">A procurar jogos ao vivo...</div>
+    <h2>Radar Sinais: Canto Limite</h2>
+    <div id="matches-container">A procurar oportunidades de valor ao vivo...</div>
     <div class="update-info" id="last-update">Atualização automática a cada 60 segundos.</div>
 
     <script>
@@ -28,59 +33,72 @@
 
         async function fetchAdvancedMatches() {
             try {
-                // Ligação definitiva aos jogos ao vivo
                 const liveResponse = await fetch('https://v3.football.api-sports.io/fixtures?live=all', { headers });
-                
-                if (!liveResponse.ok) throw new Error(`Erro de comunicação.`);
                 const liveData = await liveResponse.json();
                 
                 const container = document.getElementById('matches-container');
                 container.innerHTML = ''; 
 
-                // Proteção contra limite diário esgotado
-                if (liveData.errors && Object.keys(liveData.errors).length > 0) {
-                    if (liveData.errors.requests) {
-                        throw new Error("Atenção: Atingiu o limite diário de 100 pedidos gratuitos da API. Voltará a funcionar à meia-noite.");
-                    }
-                    throw new Error("Erro da API: " + JSON.stringify(liveData.errors));
-                }
-
-                // Extrai os 5 primeiros jogos (pode alterar este número no .slice)
-                const matches = liveData.response ? liveData.response.slice(0, 5) : [];
+                const matches = liveData.response ? liveData.response.slice(0, 10) : []; // Analisa até 10 jogos ao vivo
 
                 if(!matches || matches.length === 0) {
-                    container.innerHTML = '<p style="text-align:center; color:#b3b3b3;">Nenhum jogo ao vivo encontrado neste momento. Aguarde o início das partidas.</p>';
+                    container.innerHTML = '<p style="text-align:center; color:#b3b3b3;">Sem jogos ao vivo de momento.</p>';
                     updateTime();
                     return;
                 }
 
                 for (const match of matches) {
                     const fixtureId = match.fixture.id;
+                    const elapsed = match.fixture.status.elapsed;
+                    const homeG = match.goals.home ?? 0;
+                    const awayG = match.goals.away ?? 0;
                     
                     const statsResponse = await fetch(`https://v3.football.api-sports.io/fixtures/statistics?fixture=${fixtureId}`, { headers });
                     const statsData = await statsResponse.json();
 
-                    let homeCorners = "0";
-                    let homeShots = "0";
+                    let totalCorners = 0;
+                    let totalShots = 0;
 
+                    // Soma estatísticas de ambas as equipas
                     if (statsData.response && statsData.response.length > 0) {
-                        const homeStats = statsData.response[0].statistics; 
-                        const cornerData = homeStats.find(s => s.type === "Corner Kicks");
-                        const shotsData = homeStats.find(s => s.type === "Shots on Goal");
-                        
-                        homeCorners = cornerData && cornerData.value !== null ? cornerData.value : "0";
-                        homeShots = shotsData && shotsData.value !== null ? shotsData.value : "0";
+                        statsData.response.forEach(teamData => {
+                            const corners = teamData.statistics.find(s => s.type === "Corner Kicks");
+                            const shots = teamData.statistics.find(s => s.type === "Shots on Goal");
+                            
+                            totalCorners += corners && corners.value !== null ? parseInt(corners.value) : 0;
+                            totalShots += shots && shots.value !== null ? parseInt(shots.value) : 0;
+                        });
+                    }
+
+                    // LÓGICA DO ROBÔ (CRITÉRIOS DE ENTRADA)
+                    const diffGolos = Math.abs(homeG - awayG);
+                    const jogoEquilibrado = diffGolos === 0 || diffGolos === 1;
+                    const retaFinal = elapsed >= 80 && elapsed <= 88;
+                    const pressaoAlta = totalCorners >= 7 && totalShots >= 5;
+
+                    const sinalEntrada = retaFinal && jogoEquilibrado && pressaoAlta;
+
+                    // Montagem Visual
+                    let cardClass = "match-card";
+                    let bannerHtml = "";
+                    let minColor = "#00e676";
+
+                    if (sinalEntrada) {
+                        cardClass = "match-card alert-entry";
+                        bannerHtml = `<div class="alert-banner">🔥 ALERTA: Over Cantos Limite (HT/FT)</div>`;
+                        minColor = "#ff3d00";
                     }
 
                     const card = `
-                        <div class="match-card">
+                        <div class="${cardClass}">
+                            ${bannerHtml}
                             <div class="match-header">
-                                <span>${match.teams.home.name} ${match.goals.home ?? 0} x ${match.goals.away ?? 0} ${match.teams.away.name}</span>
-                                <span style="color: #00e676;">${match.fixture.status.elapsed}' min</span>
+                                <span>${match.teams.home.name} ${homeG} x ${awayG} ${match.teams.away.name}</span>
+                                <span style="color: ${minColor};">${elapsed}' min</span>
                             </div>
                             <div class="stats-grid">
-                                <div class="stat-item">Cantos (Casa): <span class="highlight">${homeCorners}</span></div>
-                                <div class="stat-item">Remates à Baliza (Casa): <span class="highlight">${homeShots}</span></div>
+                                <div class="stat-item">Cantos (Totais): <span class="highlight">${totalCorners}</span></div>
+                                <div class="stat-item">Remates à Baliza (Totais): <span class="highlight">${totalShots}</span></div>
                             </div>
                         </div>
                     `;
@@ -88,22 +106,18 @@
                 }
                 updateTime();
             } catch (error) {
-                document.getElementById('matches-container').innerHTML = `<p class="error">Falha: ${error.message}</p>`;
+                console.error("Erro na leitura dos dados.");
             }
         }
 
         function updateTime() {
             const now = new Date();
-            const timeString = now.toLocaleTimeString('pt-PT');
-            document.getElementById('last-update').innerText = `Última atualização: ${timeString} | Atualiza sozinho a cada 60s.`;
+            document.getElementById('last-update').innerText = `Última verificação: ${now.toLocaleTimeString('pt-PT')} | Analisa a cada 60s.`;
         }
 
-        // Corre o código imediatamente ao abrir a página
         fetchAdvancedMatches();
-        
-        // Magia da automação: repete o processo a cada 60.000 milissegundos (60 segundos)
         setInterval(fetchAdvancedMatches, 60000);
     </script>
 </body>
 </html>
-                                
+                       
