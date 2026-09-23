@@ -18,36 +18,28 @@
 <body>
 
     <h2>Radar Avançado: Cantos e Finalizações</h2>
-    <div id="matches-container">A ligar ao servidor proxy para contornar bloqueios de rede...</div>
+    <div id="matches-container">A carregar dados em direto...</div>
 
     <script>
-        // A sua chave da API
         const apiKey = 'b56be5ce70175d3f52e7556ef5accfb7'; 
         const headers = {
             'x-apisports-key': apiKey,
             'x-apisports-host': 'v3.football.api-sports.io'
         };
 
-        // Servidor Proxy para saltar a barreira do "Failed to fetch"
-        const proxy = 'https://corsproxy.io/?';
-
         async function fetchAdvancedMatches() {
             try {
-                // Link da API codificado para o Proxy não se perder
-                const targetLiveUrl = 'https://v3.football.api-sports.io/fixtures?live=all';
+                // O pedido agora é feito para o /api/ do próprio Render
+                const liveResponse = await fetch('/api/fixtures?live=all', { headers });
                 
-                // Pedido feito através do proxy
-                const liveResponse = await fetch(proxy + encodeURIComponent(targetLiveUrl), { headers });
-                
-                // Verificação de segurança extra
                 if (!liveResponse.ok) {
-                    throw new Error(`O Proxy ou a API rejeitaram a ligação (Código ${liveResponse.status}).`);
+                    throw new Error(`Erro na ligação (Código ${liveResponse.status}).`);
                 }
 
                 const liveData = await liveResponse.json();
                 
                 if (liveData.errors && Object.keys(liveData.errors).length > 0) {
-                    throw new Error("A API rejeitou a chave ou o limite diário de buscas foi atingido.");
+                    throw new Error("A API rejeitou o pedido ou limite esgotado.");
                 }
 
                 const container = document.getElementById('matches-container');
@@ -62,9 +54,9 @@
 
                 for (const match of matches) {
                     const fixtureId = match.fixture.id;
-                    const targetStatsUrl = `https://v3.football.api-sports.io/fixtures/statistics?fixture=${fixtureId}`;
                     
-                    const statsResponse = await fetch(proxy + encodeURIComponent(targetStatsUrl), { headers });
+                    // Estatísticas também usam o caminho /api/
+                    const statsResponse = await fetch(`/api/fixtures/statistics?fixture=${fixtureId}`, { headers });
                     const statsData = await statsResponse.json();
 
                     let homeCorners = "0";
@@ -72,7 +64,6 @@
 
                     if (statsData.response && statsData.response.length > 0) {
                         const homeStats = statsData.response[0].statistics; 
-                        
                         const cornerData = homeStats.find(s => s.type === "Corner Kicks");
                         const shotsData = homeStats.find(s => s.type === "Shots on Goal");
                         
@@ -95,7 +86,7 @@
                     container.innerHTML += card;
                 }
             } catch (error) {
-                document.getElementById('matches-container').innerHTML = `<p class="error">Erro de Comunicação: ${error.message}</p>`;
+                document.getElementById('matches-container').innerHTML = `<p class="error">Falha na execução: ${error.message}</p>`;
             }
         }
 
@@ -103,3 +94,5 @@
     </script>
 </body>
 </html>
+                    
+                    
