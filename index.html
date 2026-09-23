@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+  <!DOCTYPE html>
 <html lang="pt-PT">
 <head>
     <meta charset="UTF-8">
@@ -12,13 +12,13 @@
         .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 0.9em; color: #b3b3b3; }
         .stat-item { background: #2a2a2a; padding: 10px; border-radius: 4px; text-align: center; }
         .highlight { color: #00e676; font-size: 1.2em; font-weight: bold; display: block; margin-top: 5px; }
-        .error { color: #ff5252; text-align: center; padding: 10px; background: #2a0000; border-radius: 4px; }
+        .error { color: #ffcc00; text-align: left; padding: 15px; background: #2a2a00; border-radius: 4px; word-break: break-all; font-family: monospace; }
     </style>
 </head>
 <body>
 
     <h2>Radar Avançado: Cantos e Finalizações</h2>
-    <div id="matches-container">A carregar dados em direto...</div>
+    <div id="matches-container">A ligar à API...</div>
 
     <script>
         const apiKey = 'b56be5ce70175d3f52e7556ef5accfb7'; 
@@ -29,17 +29,17 @@
 
         async function fetchAdvancedMatches() {
             try {
-                // O pedido agora é feito para o /api/ do próprio Render
                 const liveResponse = await fetch('/api/fixtures?live=all', { headers });
                 
                 if (!liveResponse.ok) {
-                    throw new Error(`Erro na ligação (Código ${liveResponse.status}).`);
+                    throw new Error(`Erro de rede (Código ${liveResponse.status}).`);
                 }
 
                 const liveData = await liveResponse.json();
                 
-                if (liveData.errors && Object.keys(liveData.errors).length > 0) {
-                    throw new Error("A API rejeitou o pedido ou limite esgotado.");
+                // NOVA VERIFICAÇÃO: Se não existir a lista de jogos, mostra o que a API respondeu
+                if (!liveData.response) {
+                    throw new Error("A API respondeu sem a lista de jogos. Detalhes:\n" + JSON.stringify(liveData, null, 2));
                 }
 
                 const container = document.getElementById('matches-container');
@@ -55,7 +55,6 @@
                 for (const match of matches) {
                     const fixtureId = match.fixture.id;
                     
-                    // Estatísticas também usam o caminho /api/
                     const statsResponse = await fetch(`/api/fixtures/statistics?fixture=${fixtureId}`, { headers });
                     const statsData = await statsResponse.json();
 
@@ -86,7 +85,8 @@
                     container.innerHTML += card;
                 }
             } catch (error) {
-                document.getElementById('matches-container').innerHTML = `<p class="error">Falha na execução: ${error.message}</p>`;
+                // Formatação para vermos exatamente o conteúdo do erro
+                document.getElementById('matches-container').innerHTML = `<pre class="error">Diagnóstico:\n${error.message}</pre>`;
             }
         }
 
@@ -94,5 +94,4 @@
     </script>
 </body>
 </html>
-                    
-                    
+                      
