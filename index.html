@@ -12,54 +12,64 @@
         .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 0.9em; color: #b3b3b3; }
         .stat-item { background: #2a2a2a; padding: 10px; border-radius: 4px; text-align: center; }
         .highlight { color: #00e676; font-size: 1.2em; font-weight: bold; display: block; margin-top: 5px; }
-        .error { color: #ff5252; }
+        .error { color: #ff5252; text-align: center; padding: 10px; background: #2a0000; border-radius: 4px; }
     </style>
 </head>
 <body>
 
     <h2>Radar Avançado: Cantos e Finalizações</h2>
-    <div id="matches-container">A procurar dados e a cruzar estatísticas na API...</div>
+    <div id="matches-container">A ligar ao servidor proxy para contornar bloqueios de rede...</div>
 
     <script>
-        // A SUA CHAVE FOI INSERIDA AQUI:
+        // A sua chave da API
         const apiKey = 'b56be5ce70175d3f52e7556ef5accfb7'; 
         const headers = {
             'x-apisports-key': apiKey,
             'x-apisports-host': 'v3.football.api-sports.io'
         };
 
+        // Servidor Proxy para saltar a barreira do "Failed to fetch"
+        const proxy = 'https://corsproxy.io/?';
+
         async function fetchAdvancedMatches() {
             try {
-                // Primeira requisição: Buscar jogos ao vivo
-                const liveResponse = await fetch('https://v3.football.api-sports.io/fixtures?live=all', { headers });
+                // Link da API codificado para o Proxy não se perder
+                const targetLiveUrl = 'https://v3.football.api-sports.io/fixtures?live=all';
+                
+                // Pedido feito através do proxy
+                const liveResponse = await fetch(proxy + encodeURIComponent(targetLiveUrl), { headers });
+                
+                // Verificação de segurança extra
+                if (!liveResponse.ok) {
+                    throw new Error(`O Proxy ou a API rejeitaram a ligação (Código ${liveResponse.status}).`);
+                }
+
                 const liveData = await liveResponse.json();
                 
                 if (liveData.errors && Object.keys(liveData.errors).length > 0) {
-                    throw new Error("Erro na API: Chave inválida ou limite excedido.");
+                    throw new Error("A API rejeitou a chave ou o limite diário de buscas foi atingido.");
                 }
 
                 const container = document.getElementById('matches-container');
                 container.innerHTML = ''; 
 
-                // Limita a 3 jogos para não esgotar a cota da API durante os testes
                 const matches = liveData.response.slice(0, 3);
 
-                if(matches.length === 0) {
+                if(!matches || matches.length === 0) {
                     container.innerHTML = '<p>Nenhum jogo ao vivo encontrado no momento.</p>';
                     return;
                 }
 
                 for (const match of matches) {
                     const fixtureId = match.fixture.id;
+                    const targetStatsUrl = `https://v3.football.api-sports.io/fixtures/statistics?fixture=${fixtureId}`;
                     
-                    // Segunda requisição: Buscar estatísticas do jogo específico pelo ID
-                    const statsResponse = await fetch(`https://v3.football.api-sports.io/fixtures/statistics?fixture=${fixtureId}`, { headers });
+                    const statsResponse = await fetch(proxy + encodeURIComponent(targetStatsUrl), { headers });
                     const statsData = await statsResponse.json();
 
                     let homeCorners = "0";
                     let homeShots = "0";
 
-                    // Verifica se a API retornou estatísticas para a partida
                     if (statsData.response && statsData.response.length > 0) {
                         const homeStats = statsData.response[0].statistics; 
                         
@@ -85,11 +95,10 @@
                     container.innerHTML += card;
                 }
             } catch (error) {
-                document.getElementById('matches-container').innerHTML = `<p class="error">Falha na execução: ${error.message}</p>`;
+                document.getElementById('matches-container').innerHTML = `<p class="error">Erro de Comunicação: ${error.message}</p>`;
             }
         }
 
-        // Função ativada
         fetchAdvancedMatches();
     </script>
 </body>
