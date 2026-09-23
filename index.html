@@ -12,39 +12,41 @@
         .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 0.9em; color: #b3b3b3; }
         .stat-item { background: #2a2a2a; padding: 10px; border-radius: 4px; text-align: center; }
         .highlight { color: #00e676; font-size: 1.2em; font-weight: bold; display: block; margin-top: 5px; }
-        .error { color: #ffcc00; text-align: left; padding: 15px; background: #2a2a00; border-radius: 4px; word-break: break-all; font-family: monospace; }
+        .error { color: #ff5252; text-align: center; padding: 15px; background: #2a0000; border-radius: 4px; font-family: monospace; }
     </style>
 </head>
 <body>
 
     <h2>Radar Avançado: Cantos e Finalizações</h2>
-    <div id="matches-container">A ligar à API...</div>
+    <div id="matches-container">A ligar diretamente à API...</div>
 
     <script>
         const apiKey = 'b56be5ce70175d3f52e7556ef5accfb7'; 
+        
+        // A SOLUÇÃO: Apenas a chave! Sem cabeçalhos extra que bloqueiam a ligação.
         const headers = {
-            'x-apisports-key': apiKey,
-            'x-apisports-host': 'v3.football.api-sports.io'
+            'x-apisports-key': apiKey
         };
 
         async function fetchAdvancedMatches() {
             try {
-                const liveResponse = await fetch('/api/fixtures?live=all', { headers });
+                // Voltamos a chamar a API diretamente
+                const liveResponse = await fetch('https://v3.football.api-sports.io/fixtures?live=all', { headers });
                 
                 if (!liveResponse.ok) {
-                    throw new Error(`Erro de rede (Código ${liveResponse.status}).`);
+                    throw new Error(`Erro de comunicação (Código ${liveResponse.status}).`);
                 }
 
                 const liveData = await liveResponse.json();
                 
-                // NOVA VERIFICAÇÃO: Se não existir a lista de jogos, mostra o que a API respondeu
-                if (!liveData.response) {
-                    throw new Error("A API respondeu sem a lista de jogos. Detalhes:\n" + JSON.stringify(liveData, null, 2));
+                if (liveData.errors && Object.keys(liveData.errors).length > 0) {
+                    throw new Error("A API rejeitou o pedido: " + JSON.stringify(liveData.errors));
                 }
 
                 const container = document.getElementById('matches-container');
                 container.innerHTML = ''; 
 
+                // Extrair até 3 jogos
                 const matches = liveData.response.slice(0, 3);
 
                 if(!matches || matches.length === 0) {
@@ -55,7 +57,8 @@
                 for (const match of matches) {
                     const fixtureId = match.fixture.id;
                     
-                    const statsResponse = await fetch(`/api/fixtures/statistics?fixture=${fixtureId}`, { headers });
+                    // Estatísticas em direto
+                    const statsResponse = await fetch(`https://v3.football.api-sports.io/fixtures/statistics?fixture=${fixtureId}`, { headers });
                     const statsData = await statsResponse.json();
 
                     let homeCorners = "0";
@@ -85,8 +88,7 @@
                     container.innerHTML += card;
                 }
             } catch (error) {
-                // Formatação para vermos exatamente o conteúdo do erro
-                document.getElementById('matches-container').innerHTML = `<pre class="error">Diagnóstico:\n${error.message}</pre>`;
+                document.getElementById('matches-container').innerHTML = `<p class="error">Falha na execução: ${error.message}</p>`;
             }
         }
 
