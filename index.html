@@ -17,47 +17,34 @@
 </head>
 <body>
 
-    <h2>Radar Avançado: Cantos e Finalizações</h2>
-    <div id="matches-container">A ligar diretamente à API...</div>
+    <h2>Radar Avançado: Teste com a Premier League</h2>
+    <div id="matches-container">A carregar jogos da Liga Inglesa...</div>
 
     <script>
         const apiKey = 'b56be5ce70175d3f52e7556ef5accfb7'; 
-        
-        // A SOLUÇÃO: Apenas a chave! Sem cabeçalhos extra que bloqueiam a ligação.
-        const headers = {
-            'x-apisports-key': apiKey
-        };
+        const headers = { 'x-apisports-key': apiKey };
 
         async function fetchAdvancedMatches() {
             try {
-                // Voltamos a chamar a API diretamente
-                const liveResponse = await fetch('https://v3.football.api-sports.io/fixtures?live=all', { headers });
+                // TESTE: Buscar os últimos 3 jogos da Premier League (Liga 39) da época atual
+                const liveResponse = await fetch('https://v3.football.api-sports.io/fixtures?league=39&season=2026&last=3', { headers });
                 
-                if (!liveResponse.ok) {
-                    throw new Error(`Erro de comunicação (Código ${liveResponse.status}).`);
-                }
-
+                if (!liveResponse.ok) throw new Error(`Erro de comunicação.`);
                 const liveData = await liveResponse.json();
                 
-                if (liveData.errors && Object.keys(liveData.errors).length > 0) {
-                    throw new Error("A API rejeitou o pedido: " + JSON.stringify(liveData.errors));
-                }
-
                 const container = document.getElementById('matches-container');
                 container.innerHTML = ''; 
 
-                // Extrair até 3 jogos
-                const matches = liveData.response.slice(0, 3);
+                const matches = liveData.response;
 
                 if(!matches || matches.length === 0) {
-                    container.innerHTML = '<p>Nenhum jogo ao vivo encontrado no momento.</p>';
+                    container.innerHTML = '<p>Nenhum jogo encontrado.</p>';
                     return;
                 }
 
                 for (const match of matches) {
                     const fixtureId = match.fixture.id;
                     
-                    // Estatísticas em direto
                     const statsResponse = await fetch(`https://v3.football.api-sports.io/fixtures/statistics?fixture=${fixtureId}`, { headers });
                     const statsData = await statsResponse.json();
 
@@ -66,6 +53,7 @@
 
                     if (statsData.response && statsData.response.length > 0) {
                         const homeStats = statsData.response[0].statistics; 
+                        
                         const cornerData = homeStats.find(s => s.type === "Corner Kicks");
                         const shotsData = homeStats.find(s => s.type === "Shots on Goal");
                         
@@ -77,7 +65,7 @@
                         <div class="match-card">
                             <div class="match-header">
                                 <span>${match.teams.home.name} ${match.goals.home ?? 0} x ${match.goals.away ?? 0} ${match.teams.away.name}</span>
-                                <span style="color: #00e676;">${match.fixture.status.elapsed}' min</span>
+                                <span style="color: #888;">Terminado</span>
                             </div>
                             <div class="stats-grid">
                                 <div class="stat-item">Cantos (Casa): <span class="highlight">${homeCorners}</span></div>
@@ -88,7 +76,7 @@
                     container.innerHTML += card;
                 }
             } catch (error) {
-                document.getElementById('matches-container').innerHTML = `<p class="error">Falha na execução: ${error.message}</p>`;
+                document.getElementById('matches-container').innerHTML = `<p class="error">Falha: ${error.message}</p>`;
             }
         }
 
@@ -96,3 +84,4 @@
     </script>
 </body>
 </html>
+
