@@ -26,8 +26,8 @@
 
         async function fetchAdvancedMatches() {
             try {
-                // TESTE: Buscar os últimos 3 jogos da Premier League (Liga 39) da época atual
-                const liveResponse = await fetch('https://v3.football.api-sports.io/fixtures?league=39&season=2026&last=3', { headers });
+                // Pedimos jogos da Premier League desta época que já estejam Terminados (FT - Full Time)
+                const liveResponse = await fetch('https://v3.football.api-sports.io/fixtures?league=39&season=2026&status=FT', { headers });
                 
                 if (!liveResponse.ok) throw new Error(`Erro de comunicação.`);
                 const liveData = await liveResponse.json();
@@ -35,7 +35,8 @@
                 const container = document.getElementById('matches-container');
                 container.innerHTML = ''; 
 
-                const matches = liveData.response;
+                // Pegamos nos primeiros 3 jogos terminados que a API devolver
+                const matches = liveData.response.slice(0, 3);
 
                 if(!matches || matches.length === 0) {
                     container.innerHTML = '<p>Nenhum jogo encontrado.</p>';
@@ -84,4 +85,3 @@
     </script>
 </body>
 </html>
-
