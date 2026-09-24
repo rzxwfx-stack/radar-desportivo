@@ -32,8 +32,8 @@
     <div class="update-info" id="last-update">Atualização automática a cada 5 minutos.</div>
 
     <script>
-        // APENAS COLOQUE A SUA CHAVE NA LINHA ABAIXO
-        const apiKey = 'SUA_CHAVE_AQUI'; 
+        // Chave da API inserida diretamente
+        const apiKey = 'b56be5ce70175d3f52e7556ef5accfb7'; 
         
         const headers = { 'x-apisports-key': apiKey };
         let wakeLock = null;
@@ -146,7 +146,7 @@
 
                 updateTime();
             } catch (error) {
-                document.getElementById('matches-container').innerHTML = `<p class="error">Falha: ${error.message}</p>`;
+                document.getElementById('matches-container').innerHTML = `<p class="error">Falha do Sistema: ${error.message}</p>`;
             }
         }
 
