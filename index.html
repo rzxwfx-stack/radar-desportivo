@@ -1,5 +1,40 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Radar Sniper com Mensagem</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #121212; color: #ffffff; margin: 0; padding: 20px; }
+        h2 { color: #00e676; border-bottom: 1px solid #333; padding-bottom: 10px; }
+        .btn-ativar { width: 100%; background-color: #007bff; color: white; border: none; padding: 15px; font-size: 1.1em; font-weight: bold; border-radius: 4px; cursor: pointer; margin-bottom: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
+        .match-card { background-color: #1e1e1e; border-left: 5px solid #00e676; padding: 15px; margin-bottom: 15px; border-radius: 4px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); transition: all 0.3s ease; }
+        .match-header { display: flex; justify-content: space-between; font-weight: bold; font-size: 1.1em; margin-bottom: 10px; }
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 0.9em; color: #b3b3b3; }
+        .stat-item { background: #2a2a2a; padding: 10px; border-radius: 4px; text-align: center; }
+        .highlight { color: #00e676; font-size: 1.2em; font-weight: bold; display: block; margin-top: 5px; }
+        .update-info { text-align: center; color: #888; font-size: 0.85em; margin-top: 20px; }
+        .error { color: #ff5252; text-align: center; padding: 15px; background: #2a0000; border-radius: 4px; font-weight: bold; }
+        
+        .alert-entry { border-left: 5px solid #ff3d00; background-color: #2b0c00; animation: pulse 2s infinite; }
+        .alert-entry .highlight { color: #ff3d00; }
+        .alert-banner { background: #ff3d00; color: white; text-align: center; font-weight: bold; padding: 8px; margin-bottom: 12px; border-radius: 4px; text-transform: uppercase; }
+        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(255, 61, 0, 0.5); } 70% { box-shadow: 0 0 0 10px rgba(255, 61, 0, 0); } 100% { box-shadow: 0 0 0 0 rgba(255, 61, 0, 0); } }
+    </style>
+</head>
+<body>
+
+    <h2>Radar Sinais: Modo Sniper</h2>
+    
+    <button id="btnAtivar" class="btn-ativar">🔔 Permitir Mensagens e Ecrã Ligado</button>
+    
+    <div id="matches-container">A procurar oportunidades de valor ao vivo...</div>
+    <div class="update-info" id="last-update">Atualização automática a cada 5 minutos.</div>
+
     <script>
-        const apiKey = 'COLOQUE_AQUI_A_SUA_NOVA_CHAVE'; // Lembre-se de colocar uma chave nova se a de hoje já esgotou
+        // APENAS COLOQUE A SUA CHAVE NA LINHA ABAIXO
+        const apiKey = 'SUA_CHAVE_AQUI'; 
+        
         const headers = { 'x-apisports-key': apiKey };
         let wakeLock = null;
 
@@ -39,7 +74,6 @@
                 const todosJogos = liveData.response ? liveData.response : [];
                 const jogosBrasil = todosJogos.filter(match => match.league.country === 'Brazil');
 
-                // Analisa até 5 jogos brasileiros em simultâneo
                 const matches = jogosBrasil.slice(0, 5);
                 let encontrouEntrada = false;
 
@@ -55,7 +89,6 @@
                     const homeG = match.goals.home ?? 0;
                     const awayG = match.goals.away ?? 0;
                     
-                    // Só gasta créditos de estatísticas porque sabemos que o jogo é no Brasil
                     const statsResponse = await fetch(`https://v3.football.api-sports.io/fixtures/statistics?fixture=${fixtureId}`, { headers });
                     const statsData = await statsResponse.json();
 
@@ -125,5 +158,5 @@
         fetchAdvancedMatches();
         setInterval(fetchAdvancedMatches, 300000); 
     </script>
-                        
-        
+</body>
+</html>
